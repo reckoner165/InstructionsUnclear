@@ -1,0 +1,72 @@
+-- Supply Chain - Reckoner
+-- From the album Instructions Unclear
+
+-- This file contains the code to generate the drum parts in the song Supply Chain from Instructions Unclear by Reckoner
+-- The code is optimized to work with a drum rack in Ableton Live
+
+-- In order to run this code, you need to be setup with TidalCycles and Supercollider.
+-- Information about that is in the README file in the TidalCyles directory of this repo
+
+-- This maps TidalCycles to a MIDI bus that can then be routed to a drum rack within Ableton live
+import Sound.Tidal.MIDI.Context
+devices <- midiDevices
+
+-- Update midi_route to whatever MIDI route interfaces with Ableton on your system.
+-- On MacOS, IAC Driver Bus 1 usually does the job
+let midi_route = "IAC Driver Bus 1"
+m1 <- midiStream devices midi_route 1 synthController
+
+-- Some notes on the Drum rack <--> MIDI note mapping
+-- Ableton Live drum racks are arranged, and indexed via TidalCycles thus:
+-- | 12 | 13 | 14 | 15 |
+-- |  8 |  9 | 10 | 11 |
+-- |  4 |  5 |  6 |  7 |
+-- |  0 |  1 |  2 |  3 |
+
+-- Not all notes in the rack are necessarily utilized by every piece of code.
+-- In case of this specific song, the drum rack has the following note-bindings:
+-- 0 : kick
+-- 4 : snare 1
+-- 5 : low tom
+-- 7 : floor tom
+-- 8 : hihat pedal
+-- 10 : hihat open
+-- 12 : snare 2
+-- 13 : crash
+-- 15 : ride
+-- (If your drum rack arrangement is different, you should edit note values in the code accordingly
+--  in order to achieve the required mapping)
+
+-- MIDI notes in TidalCycles are aligned to C3
+-- This offset helps map the MIDI notes to Ableton drum rack, which start at C1 (i.e., 24 notes below C3).
+let offset = "-24"
+
+bps(115/60)
+
+-- Verse
+m1 $ every' 16 15 (const $ stack [
+    note " [12? 4] [12 4] [5 5] [7 7]" |+| nudge "0 0 [0 0.01] 0.02" |+| velocity "[0.55 0.5] [0.45 0.4] [0.4 0.3] [0.5 0.4]" |+| note "-24"
+]) $ stack [
+    slow 2 $ every 8 (const $ note "8 [8 13] 8 8" |+| velocity "0.5 [0.5 0.25] 0.5 0.5") $ note "8 8 8 8",
+    every 8 (const $ note "~ 0 ~ 4]" |+| nudge "0 0 0 [0 0.02]") $ note "~ 0 4 [0 4]" |+| nudge "0 0 0 [0 0.02]" |+| velocity "0.5 0.4 [0.6 0.3] 0.45",
+    every 16 (const $ note "[7 7] ~ ~ ~" |+| velocity "0.4") $ every 4 (const $ note "0" |+| velocity "0.4") $ note "~"
+    ] |+| note offset
+
+-- Chorus
+m1 $ stack [
+    every 4 (const $ note "13 8") $ note "8 8",
+    note "~ 0 4 [0 4]" |+| nudge "0 0 0 [0 0.025]",
+    every 4 (const $ note "0") $ note "[~ 4?] ~ ~ ~" |+| velocity "0.4" |+| nudge "0.02"
+]|+| note offset
+
+-- Outro
+
+m1 $ stack [
+    slow 2 $ note "~ 8 8 8" ,
+    slow 2 $ every 4 (const $ every 8 (const $ note "15 ~ ~ ~") $ note "8 10 ~ ~") $ note "8 ~ ~ ~",
+    every 8 (const $ degradeBy 0.1 $ every 64 ( striate 2) $ note "[~ 4] [12 4] [12 4] [5 7]" |+| velocity "0.6 [0.55 0.45] [0.3 0.45] [0.5 0.45]" |+| nudge "0 [0 0.01] 0 0 ")
+    $ every 4 (const $ note "[~ 4] [0 0] [~ 0] [4 12]" |+| velocity "0.5 [0.5 0.4] 0.5 [0.3 0.45]" |+| nudge "0 [0 0.01] 0 0 ")
+    $ note "[~ 4] [0 0] 4 [4? 12]" |+| velocity "0.5 [0.5 0.4] 0.7 [0.25 0.4]" |+| nudge "0 [0 0.01] 0 0 "
+    ] |+| note offset
+
+m1 $ silence
