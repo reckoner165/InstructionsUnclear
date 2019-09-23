@@ -1,0 +1,46 @@
+-- Placards - Reckoner
+-- From the album Instructions Unclear
+
+-- This file contains the code to generate the drum parts in the song Placards from Instructions Unclear by Reckoner
+-- The code is optimized to work with a drum rack in Ableton Live
+
+-- In order to run this code, you need to be setup with TidalCycles and Supercollider.
+-- Information about that is in the README file in the TidalCyles directory of this repo
+
+-- This maps TidalCycles to a MIDI bus that can then be routed to a drum rack within Ableton live
+import Sound.Tidal.MIDI.Context
+devices <- midiDevices
+
+-- Update midi_route to whatever MIDI route interfaces with Ableton on your system.
+-- On MacOS, IAC Driver Bus 1 usually does the job
+let midi_route = "IAC Driver Bus 1"
+m1 <- midiStream devices midi_route 1 synthController
+
+-- Some notes on the Drum rack <--> MIDI note mapping
+-- Ableton Live drum racks are arranged, and indexed via TidalCycles thus:
+-- | 12 | 13 | 14 | 15 |
+-- |  8 |  9 | 10 | 11 |
+-- |  4 |  5 |  6 |  7 |
+-- |  0 |  1 |  2 |  3 |
+
+-- Not all notes in the rack are necessarily utilized by every piece of code.
+-- In case of this specific song, the drum rack has the following note-bindings:
+-- 0 : kick
+-- 4 : snare 1
+-- 15 : ride cymbal
+-- (If your drum rack arrangement is different, you should edit note values in the code accordingly
+--  in order to achieve the required mapping)
+
+-- MIDI notes in TidalCycles are aligned to C3
+-- This offset helps map the MIDI notes to Ableton drum rack, which start at C1 (i.e., 24 notes below C3).
+let offset = "-24"
+-- bpm of the track
+bps (63.48/60)
+
+m1 $ stack [
+slow 2 $ note "15*4" |+| velocity (rand),
+slow 2 $ every 4 (const $ note "[~ 0] [4 ~ ~ 0] [~ 0] 4") $ note "0 [4 ~ ~ 0] [~ 0] 4",
+slow 2 $ degradeBy 0.1 $ note " ~ ~ [~ 4? ~ 0?] [~ ~ ~ 4?]" |+| velocity "0.3"
+] |+| note offset
+
+m1 $ silence
