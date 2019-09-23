@@ -1,0 +1,53 @@
+-- Red Spiders Cometh - Reckoner
+-- From the album Instructions Unclear
+
+-- This file contains the code to generate the drum parts in the song Red Spiders Cometh from Instructions Unclear by Reckoner
+-- The code is optimized to work with a drum rack in Ableton Live
+
+-- In order to run this code, you need to be setup with TidalCycles and Supercollider.
+-- Information about that is in the README file in the TidalCyles directory of this repo
+
+-- This maps TidalCycles to a MIDI bus that can then be routed to a drum rack within Ableton live
+import Sound.Tidal.MIDI.Context
+devices <- midiDevices
+
+-- Update midi_route to whatever MIDI route interfaces with Ableton on your system.
+-- On MacOS, IAC Driver Bus 1 usually does the job
+let midi_route = "IAC Driver Bus 1"
+m1 <- midiStream devices midi_route 1 synthController
+
+-- Some notes on the Drum rack <--> MIDI note mapping
+-- Ableton Live drum racks are arranged, and indexed via TidalCycles thus:
+-- | 12 | 13 | 14 | 15 |
+-- |  8 |  9 | 10 | 11 |
+-- |  4 |  5 |  6 |  7 |
+-- |  0 |  1 |  2 |  3 |
+
+-- Not all notes in the rack are necessarily utilized by every piece of code.
+-- In case of this specific song, the drum rack has the following note-bindings:
+-- 0 : kick
+-- 4 : snare 1
+-- 6 : hihat closed
+-- 10 : hihat open
+-- (If your drum rack arrangement is different, you should edit note values in the code accordingly
+--  in order to achieve the required mapping)
+
+-- MIDI notes in TidalCycles are aligned to C3
+-- This offset helps map the MIDI notes to Ableton drum rack, which start at C1 (i.e., 24 notes below C3).
+let offset = "-24"
+-- bpm of the track
+bps(82/60)
+
+m1 $ every' 3 2 (shuffle 2) $ every 4 (iter 2) $ every 4 (const $ stack[
+   fast 4 $ note "10 6 6 6" |+| velocity "0.5 0.4 0.5 0.3",
+   note "0 ~ 4 0 ~ 4 ~ ~",
+   note "~ ~ ~ ~ ~ ~ [~ 4] [~ 4]" |+| velocity "~ ~ ~ ~ ~ ~ [~ 0.3] [0.15 0.25]"
+    ] |+| note "-24") $
+stack [
+fast 4 $ every 3 (slow 2) $ note "10 6 6 6" |+| velocity "0.5 0.4 0.5 0.3",
+every' 16 9 (linger 0.5) $ note "0 ~ 4 ~ ~ 0 4 ~",
+note "4 ~ ~ ~ ~ 4 ~ ~" |+| velocity 0.08,
+degrade $ note "~ ~ ~ ~ [~ 4] [~ 0] ~ [~ 4]" |+| velocity "0.2" |+| nudge 0.02
+] |+| note offset
+
+m1 $ silence
